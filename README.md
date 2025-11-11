@@ -30,6 +30,8 @@ brew install sdl2 sdl2_image sdl2_gfx
 make build
 ```
 
+> Note: use `make build-apple-silicon` on newer MacOS devices
+
 ## Run
 
 ```shell
