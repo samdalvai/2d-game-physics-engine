@@ -1,6 +1,7 @@
 # 2d-game-physics-engine
 
-2D Game Physics Engine with C++ from the pikuma.com course
+A basic 2d Game Phisics Engine made from scratch by following the Pikuma course using C++ and SDL2.
+Visit [pikuma.com](https://pikuma.com/) for more information on the course.
 
 # Libraries and dependencies
 
