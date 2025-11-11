@@ -1,2 +1,42 @@
 # 2d-game-physics-engine
+
 2D Game Physics Engine with C++ from the pikuma.com course
+
+# Libraries and dependencies
+
+In order for the project to run you need to install the following packages on your machine:
+
+- **Make** -> for building and running the game
+- **sdl2**, **sdl2_image**, **sdl2_gfx** -> libraries to manage rendering of graphics
+
+## Installation on linux based systems
+
+```shell
+sudo apt install build-essential libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libsdl2-mixer-dev liblua5.3-dev
+```
+
+## Installation on macOS
+
+```shell
+brew install sdl2 sdl2_image sdl2_gfx
+```
+
+# How to run the game
+
+## Build
+
+```shell
+make build
+```
+
+## Run
+
+```shell
+make run
+```
+
+## Clean game executable file
+
+```shell
+make clean
+```
