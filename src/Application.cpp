@@ -1,10 +1,6 @@
 #include "Application.h"
 #include "./Physics/Constants.h"
 #include "./Physics/Force.h"
-#include <iostream>
-#include <random>
-#include <cstdint> // for uint32_t
-
 
 bool Application::IsRunning() {
     return running;
@@ -13,43 +9,15 @@ bool Application::IsRunning() {
 ///////////////////////////////////////////////////////////////////////////////
 // Setup function (executed once in the beginning of the simulation)
 ///////////////////////////////////////////////////////////////////////////////
-
-float RandomFloat(float min = 1.0f, float max = 10.0f) {
-    static std::random_device rd;  // seed
-    static std::mt19937 gen(rd()); // Mersenne Twister generator
-    std::uniform_real_distribution<float> dis(min, max);
-    return dis(gen);
-}
-
-Uint32 RandomColor() {
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> dis(0, 255);
-
-    Uint8 r = dis(gen);
-    Uint8 g = dis(gen);
-    Uint8 b = dis(gen);
-    Uint8 a = 255; // fully opaque
-
-    Uint32 color = (a << 24) | (r << 16) | (g << 8) | b;
-    return color;
-}
-
 void Application::Setup() {
     running = Graphics::OpenWindow();
 
-    Particle* bigPlanet = new Particle(Graphics::Width() / 2, Graphics::Height() / 2, 100.0);
-    bigPlanet->radius = 20;
-    bigPlanet->color = RandomColor();
-    particles.push_back(bigPlanet);
+    anchor = Vec2(Graphics::Width() / 2.0, 30);
 
-    for (int i = 0; i < 1000; i++) {
-        float randomRadius = RandomFloat(1, 5);
-        Particle* smallPlanet = new Particle(RandomFloat(20, Graphics::Width() - 20), RandomFloat(20, Graphics::Height() - 20), randomRadius);
-        smallPlanet->radius = randomRadius;
-        smallPlanet->velocity.x = RandomFloat(-200, 200);
-        smallPlanet->color = RandomColor();
-        particles.push_back(smallPlanet);
+    for (int i = 0; i < NUM_PARTICLES; i++) {
+        Particle* bob = new Particle(anchor.x, anchor.y + (i * restLength), 2.0);
+        bob->radius = 6;
+        particles.push_back(bob);
     }
 }
 
@@ -101,9 +69,10 @@ void Application::Input() {
             case SDL_MOUSEBUTTONUP:
                 if (leftMouseButtonDown && event.button.button == SDL_BUTTON_LEFT) {
                     leftMouseButtonDown = false;
-                    Vec2 impulseDirection = (particles[0]->position - mouseCursor).UnitVector();
-                    float impulseMagnitude = (particles[0]->position - mouseCursor).Magnitude() * 5.0;
-                    particles[0]->velocity = impulseDirection * impulseMagnitude;
+                    int lastParticle = NUM_PARTICLES - 1;
+                    Vec2 impulseDirection = (particles[lastParticle]->position - mouseCursor).UnitVector();
+                    float impulseMagnitude = (particles[lastParticle]->position - mouseCursor).Magnitude() * 5.0;
+                    particles[lastParticle]->velocity = impulseDirection * impulseMagnitude;
                 }
                 break;
         }
@@ -132,18 +101,26 @@ void Application::Update() {
     for (auto particle: particles) {
         particle->AddForce(pushForce);
 
-        // Apply a friction force
-        // Vec2 friction = Force::GenerateFrictionForce(*particle, 20);
-        // particle->AddForce(friction);
+        // Apply a drag force
+        Vec2 drag = Force::GenerateDragForce(*particle, 0.002);
+        particle->AddForce(drag);
+
+        // Apply weight force
+        Vec2 weight = Vec2(0.0, particle->mass * 9.8 * PIXELS_PER_METER);
+        particle->AddForce(weight);
     }
 
-    // Applying a gravitational force to our two particles/planets
-    for (int i = 0; i < particles.size() - 1; i++) {
-        for (int j = 1; j < particles.size(); j++) {
-            Vec2 attraction = Force::GenerateGravitationalForce(*particles[i], *particles[j], 1000.0, 5, 100);
-            particles[i]->AddForce(attraction);
-            particles[j]->AddForce(-attraction);
-        }
+    // Attach the head to the anchor with a spring
+    Vec2 springForce = Force::GenerateSpringForce(*particles[0], anchor, restLength, k);
+    particles[0]->AddForce(springForce);
+
+    // Connect the particles with the one before in a chain of springs
+    for (int i = 1; i < NUM_PARTICLES; i++) {
+        int currParticle = i;
+        int prevParticle = i - 1;
+        Vec2 springForce = Force::GenerateSpringForce(*particles[currParticle], *particles[prevParticle], restLength, k);
+        particles[currParticle]->AddForce(springForce);
+        particles[prevParticle]->AddForce(-springForce);
     }
 
     // Integrate the acceleration and velocity to estimate the new position
@@ -177,12 +154,25 @@ void Application::Update() {
 void Application::Render() {
     Graphics::ClearScreen(0xFF0F0721);
 
-    // if (leftMouseButtonDown) {
-    //     Graphics::DrawLine(particles[0]->position.x, particles[0]->position.y, mouseCursor.x, mouseCursor.y, 0xFF0000FF);
-    // }
+    if (leftMouseButtonDown) {
+        int lastParticle = NUM_PARTICLES - 1;
+        Graphics::DrawLine(particles[lastParticle]->position.x, particles[lastParticle]->position.y, mouseCursor.x, mouseCursor.y, 0xFF0000FF);
+    }
 
+    // Draw the anchor and the spring to the first bob
+    Graphics::DrawFillCircle(anchor.x, anchor.y, 5, 0xFF001155);
+    Graphics::DrawLine(anchor.x, anchor.y, particles[0]->position.x, particles[0]->position.y, 0xFF313131);
+
+    // Draw all the springs from one particle to the next
+    for (int i = 0; i < NUM_PARTICLES - 1; i++) {
+        int currParticle = i;
+        int nextParticle = i + 1;
+        Graphics::DrawLine(particles[currParticle]->position.x, particles[currParticle]->position.y, particles[nextParticle]->position.x, particles[nextParticle]->position.y, 0xFF313131);
+    }
+
+    // Draw all the bob particles
     for (auto particle: particles) {
-        Graphics::DrawFillCircle(particle->position.x, particle->position.y, particle->radius, particle->color);
+        Graphics::DrawFillCircle(particle->position.x, particle->position.y, particle->radius, 0xFFEEBB00);
     }
 
     Graphics::RenderFrame();
