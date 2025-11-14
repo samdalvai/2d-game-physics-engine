@@ -1,16 +1,10 @@
 #include "Application.h"
 #include "./Physics/Constants.h"
 #include "./Physics/Force.h"
+#include "./Physics/Utils.h"
 #include <iostream>
 #include <random>
 #include <cstdint>
-
-float RandomFloat(float min = 1.0f, float max = 10.0f) {
-    static std::random_device rd;  // seed
-    static std::mt19937 gen(rd()); // Mersenne Twister generator
-    std::uniform_real_distribution<float> dis(min, max);
-    return dis(gen);
-}
 
 bool Application::IsRunning() {
     return running;
@@ -46,7 +40,7 @@ void Application::Setup() {
     anchor = Vec2(Graphics::Width() / 2.0, 30);
 
     for (int i = 0; i < NUM_PARTICLES; i++) {
-        float mass = RandomFloat(1.0, 3.0);
+        float mass = Utils::RandomFloat(1.0, 3.0);
         int radius = mass * 3;
 
         Particle* bob = new Particle(anchor.x, anchor.y + (i * restLength), mass);
