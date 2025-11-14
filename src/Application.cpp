@@ -2,6 +2,9 @@
 #include "./Physics/Constants.h"
 #include "./Physics/Force.h"
 #include <iostream>
+#include <random>
+#include <cstdint> // for uint32_t
+
 
 bool Application::IsRunning() {
     return running;
@@ -10,22 +13,43 @@ bool Application::IsRunning() {
 ///////////////////////////////////////////////////////////////////////////////
 // Setup function (executed once in the beginning of the simulation)
 ///////////////////////////////////////////////////////////////////////////////
+
+float RandomFloat(float min = 1.0f, float max = 10.0f) {
+    static std::random_device rd;  // seed
+    static std::mt19937 gen(rd()); // Mersenne Twister generator
+    std::uniform_real_distribution<float> dis(min, max);
+    return dis(gen);
+}
+
+Uint32 RandomColor() {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> dis(0, 255);
+
+    Uint8 r = dis(gen);
+    Uint8 g = dis(gen);
+    Uint8 b = dis(gen);
+    Uint8 a = 255; // fully opaque
+
+    Uint32 color = (a << 24) | (r << 16) | (g << 8) | b;
+    return color;
+}
+
 void Application::Setup() {
     running = Graphics::OpenWindow();
 
-    Particle* smallPlanet1 = new Particle(Graphics::Width() / 2, 300, 1.0);
-    smallPlanet1->radius = 6;
-    smallPlanet1->velocity.x = 200;
-    particles.push_back(smallPlanet1);
-
-    Particle* smallPlanet2 = new Particle(Graphics::Width() / 2, (Graphics::Height() / 2) + 400 , 5);
-    smallPlanet2->radius = 8;
-    smallPlanet2->velocity.x = -220;
-    particles.push_back(smallPlanet2);
-
     Particle* bigPlanet = new Particle(Graphics::Width() / 2, Graphics::Height() / 2, 20.0);
     bigPlanet->radius = 20;
+    bigPlanet->color = RandomColor();
     particles.push_back(bigPlanet);
+
+    for (int i = 0; i < 10; i++) {
+        Particle* smallPlanet = new Particle(RandomFloat(20, Graphics::Width() - 20), RandomFloat(20, Graphics::Height() - 20), 1.0);
+        smallPlanet->radius = RandomFloat(1, 10);
+        smallPlanet->velocity.x = RandomFloat(-200, 200);
+        smallPlanet->color = RandomColor();
+        particles.push_back(smallPlanet);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -152,13 +176,13 @@ void Application::Update() {
 void Application::Render() {
     Graphics::ClearScreen(0xFF0F0721);
 
-    if (leftMouseButtonDown) {
-        Graphics::DrawLine(particles[0]->position.x, particles[0]->position.y, mouseCursor.x, mouseCursor.y, 0xFF0000FF);
-    }
+    // if (leftMouseButtonDown) {
+    //     Graphics::DrawLine(particles[0]->position.x, particles[0]->position.y, mouseCursor.x, mouseCursor.y, 0xFF0000FF);
+    // }
 
-    Graphics::DrawFillCircle(particles[0]->position.x, particles[0]->position.y, particles[0]->radius, 0xFFAA3300);
-    Graphics::DrawFillCircle(particles[1]->position.x, particles[1]->position.y, particles[1]->radius, 0xFF00FF00);
-    Graphics::DrawFillCircle(particles[2]->position.x, particles[2]->position.y, particles[2]->radius, 0xFF00FFFF);
+    for (auto particle: particles) {
+        Graphics::DrawFillCircle(particle->position.x, particle->position.y, particle->radius, particle->color);
+    }
 
     Graphics::RenderFrame();
 }

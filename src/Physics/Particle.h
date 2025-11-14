@@ -2,6 +2,7 @@
 #define PARTICLE_H
 
 #include "Vec2.h"
+#include <SDL2/SDL2_gfxPrimitives.h>
 
 struct Particle {
     int radius;
@@ -9,6 +10,7 @@ struct Particle {
     Vec2 position;
     Vec2 velocity;
     Vec2 acceleration;
+    Uint32 color;
 
     Vec2 sumForces;
 
