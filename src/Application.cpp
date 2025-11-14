@@ -113,17 +113,13 @@ void Application::Update() {
     }
 
     // Applying a gravitational force to our two particles/planets
-    Vec2 attraction1 = Force::GenerateGravitationalForce(*particles[0], *particles[1], 1000.0, 5, 100);
-    particles[0]->AddForce(attraction1);
-    particles[1]->AddForce(-attraction1);
-    
-    Vec2 attraction2 = Force::GenerateGravitationalForce(*particles[0], *particles[2], 1000.0, 5, 100);
-    particles[0]->AddForce(attraction2);
-    particles[2]->AddForce(-attraction2);
-
-    Vec2 attraction3 = Force::GenerateGravitationalForce(*particles[1], *particles[2], 1000.0, 5, 100);
-    particles[1]->AddForce(attraction3);
-    particles[2]->AddForce(-attraction3);
+    for (int i = 0; i < particles.size() - 1; i++) {
+        for (int j = 1; j < particles.size(); j++) {
+            Vec2 attraction = Force::GenerateGravitationalForce(*particles[i], *particles[j], 1000.0, 5, 100);
+            particles[i]->AddForce(attraction);
+            particles[j]->AddForce(-attraction);
+        }
+    }
 
     // Integrate the acceleration and velocity to estimate the new position
     for (auto particle: particles) {
