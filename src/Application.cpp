@@ -1,6 +1,7 @@
 #include "Application.h"
 #include "./Physics/Constants.h"
 #include "./Physics/Force.h"
+#include <iostream>
 
 bool Application::IsRunning() {
     return running;
@@ -12,11 +13,17 @@ bool Application::IsRunning() {
 void Application::Setup() {
     running = Graphics::OpenWindow();
 
-    Particle* smallPlanet = new Particle(200, 200, 1.0);
-    smallPlanet->radius = 6;
-    particles.push_back(smallPlanet);
+    Particle* smallPlanet1 = new Particle(Graphics::Width() / 2, 300, 1.0);
+    smallPlanet1->radius = 6;
+    smallPlanet1->velocity.x = 75;
+    particles.push_back(smallPlanet1);
 
-    Particle* bigPlanet = new Particle(500, 500, 20.0);
+    Particle* smallPlanet2 = new Particle(Graphics::Width() / 2, (Graphics::Height() / 2) + 400 , 5);
+    smallPlanet2->radius = 8;
+    smallPlanet2->velocity.x = -85;
+    particles.push_back(smallPlanet2);
+
+    Particle* bigPlanet = new Particle(Graphics::Width() / 2, Graphics::Height() / 2, 20.0);
     bigPlanet->radius = 20;
     particles.push_back(bigPlanet);
 }
@@ -101,14 +108,22 @@ void Application::Update() {
         particle->AddForce(pushForce);
 
         // Apply a friction force
-        Vec2 friction = Force::GenerateFrictionForce(*particle, 20);
-        particle->AddForce(friction);
+        // Vec2 friction = Force::GenerateFrictionForce(*particle, 20);
+        // particle->AddForce(friction);
     }
 
     // Applying a gravitational force to our two particles/planets
-    Vec2 attraction = Force::GenerateGravitationalForce(*particles[0], *particles[1], 1000.0, 5, 100);
-    particles[0]->AddForce(attraction);
-    particles[1]->AddForce(-attraction);
+    Vec2 attraction1 = Force::GenerateGravitationalForce(*particles[0], *particles[1], 1000.0, 5, 100);
+    particles[0]->AddForce(attraction1);
+    particles[1]->AddForce(-attraction1);
+    
+    Vec2 attraction2 = Force::GenerateGravitationalForce(*particles[0], *particles[2], 1000.0, 5, 100);
+    particles[0]->AddForce(attraction2);
+    particles[2]->AddForce(-attraction2);
+
+    Vec2 attraction3 = Force::GenerateGravitationalForce(*particles[1], *particles[2], 1000.0, 5, 100);
+    particles[1]->AddForce(attraction3);
+    particles[2]->AddForce(-attraction3);
 
     // Integrate the acceleration and velocity to estimate the new position
     for (auto particle: particles) {
@@ -146,7 +161,8 @@ void Application::Render() {
     }
 
     Graphics::DrawFillCircle(particles[0]->position.x, particles[0]->position.y, particles[0]->radius, 0xFFAA3300);
-    Graphics::DrawFillCircle(particles[1]->position.x, particles[1]->position.y, particles[1]->radius, 0xFF00FFFF);
+    Graphics::DrawFillCircle(particles[1]->position.x, particles[1]->position.y, particles[1]->radius, 0xFF00FF00);
+    Graphics::DrawFillCircle(particles[2]->position.x, particles[2]->position.y, particles[2]->radius, 0xFF00FFFF);
 
     Graphics::RenderFrame();
 }
