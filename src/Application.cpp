@@ -1,6 +1,7 @@
 #include "Application.h"
 #include "./Physics/Constants.h"
 #include "./Physics/Force.h"
+#include <iostream>
 
 bool Application::IsRunning() {
     return running;
@@ -85,15 +86,27 @@ void Application::Input() {
                     SDL_GetMouseState(&x, &y);
                     mouseCursor.x = x;
                     mouseCursor.y = y;
+
+                    nearestParticle = particles[0];
+                    float minDistance = std::numeric_limits<float>::max();
+
+                    for (auto particle : particles) {
+                        float dx = x - particle->position.x;
+                        float dy = y - particle->position.y;
+                        float distance = std::sqrt(dx*dx + dy*dy);
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            nearestParticle = particle;
+                        }
+                    }
                 }
                 break;
             case SDL_MOUSEBUTTONUP:
                 if (leftMouseButtonDown && event.button.button == SDL_BUTTON_LEFT) {
                     leftMouseButtonDown = false;
-                    int lastParticle = NUM_PARTICLES - 1;
-                    Vec2 impulseDirection = (particles[lastParticle]->position - mouseCursor).UnitVector();
-                    float impulseMagnitude = (particles[lastParticle]->position - mouseCursor).Magnitude() * 5.0;
-                    particles[lastParticle]->velocity = impulseDirection * impulseMagnitude;
+                    Vec2 impulseDirection = (nearestParticle->position - mouseCursor).UnitVector();
+                    float impulseMagnitude = (nearestParticle->position - mouseCursor).Magnitude() * 5.0;
+                    nearestParticle->velocity = impulseDirection * impulseMagnitude;
                 }
                 break;
         }
@@ -207,8 +220,7 @@ void Application::Render() {
     Graphics::ClearScreen(0xFF0F0721);
 
     if (leftMouseButtonDown) {
-        int lastParticle = NUM_PARTICLES - 1;
-        Graphics::DrawLine(particles[lastParticle]->position.x, particles[lastParticle]->position.y, mouseCursor.x, mouseCursor.y, 0xFF0000FF);
+        Graphics::DrawLine(nearestParticle->position.x, nearestParticle->position.y, mouseCursor.x, mouseCursor.y, 0xFF0000FF);
     }
 
     ///////////////////////////////////////////////////////////////////////////////

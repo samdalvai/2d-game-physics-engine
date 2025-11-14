@@ -31,6 +31,8 @@ class Application {
     public:
         Application() = default;
         ~Application() = default;
+        Particle* nearestParticle = nullptr;
+        
         bool IsRunning();
         void Setup();
         void Input();
