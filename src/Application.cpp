@@ -47,7 +47,7 @@ void Application::Setup() {
         float randomRadius = RandomFloat(1, 5);
         Particle* smallPlanet = new Particle(RandomFloat(20, Graphics::Width() - 20), RandomFloat(20, Graphics::Height() - 20), randomRadius);
         smallPlanet->radius = randomRadius;
-        smallPlanet->velocity.x = RandomFloat(1, 200);
+        smallPlanet->velocity.x = RandomFloat(-200, 200);
         smallPlanet->color = RandomColor();
         particles.push_back(smallPlanet);
     }
