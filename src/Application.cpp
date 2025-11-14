@@ -15,12 +15,12 @@ void Application::Setup() {
 
     Particle* smallPlanet1 = new Particle(Graphics::Width() / 2, 300, 1.0);
     smallPlanet1->radius = 6;
-    smallPlanet1->velocity.x = 75;
+    smallPlanet1->velocity.x = 200;
     particles.push_back(smallPlanet1);
 
     Particle* smallPlanet2 = new Particle(Graphics::Width() / 2, (Graphics::Height() / 2) + 400 , 5);
     smallPlanet2->radius = 8;
-    smallPlanet2->velocity.x = -85;
+    smallPlanet2->velocity.x = -220;
     particles.push_back(smallPlanet2);
 
     Particle* bigPlanet = new Particle(Graphics::Width() / 2, Graphics::Height() / 2, 20.0);
