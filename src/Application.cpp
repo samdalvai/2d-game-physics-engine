@@ -38,15 +38,16 @@ Uint32 RandomColor() {
 void Application::Setup() {
     running = Graphics::OpenWindow();
 
-    Particle* bigPlanet = new Particle(Graphics::Width() / 2, Graphics::Height() / 2, 20.0);
+    Particle* bigPlanet = new Particle(Graphics::Width() / 2, Graphics::Height() / 2, 100.0);
     bigPlanet->radius = 20;
     bigPlanet->color = RandomColor();
     particles.push_back(bigPlanet);
 
-    for (int i = 0; i < 10; i++) {
-        Particle* smallPlanet = new Particle(RandomFloat(20, Graphics::Width() - 20), RandomFloat(20, Graphics::Height() - 20), 1.0);
-        smallPlanet->radius = RandomFloat(1, 10);
-        smallPlanet->velocity.x = RandomFloat(-200, 200);
+    for (int i = 0; i < 1000; i++) {
+        float randomRadius = RandomFloat(1, 5);
+        Particle* smallPlanet = new Particle(RandomFloat(20, Graphics::Width() - 20), RandomFloat(20, Graphics::Height() - 20), randomRadius);
+        smallPlanet->radius = randomRadius;
+        smallPlanet->velocity.x = RandomFloat(1, 200);
         smallPlanet->color = RandomColor();
         particles.push_back(smallPlanet);
     }
