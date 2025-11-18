@@ -1,10 +1,8 @@
 #include "Application.h"
 #include "./Physics/Constants.h"
 #include "./Physics/Force.h"
-#include "./Physics/Utils.h"
-#include <iostream>
-#include <random>
-#include <cstdint>
+#include "./Physics/CollisionDetection.h"
+#include "./Physics/Contact.h"
 
 bool Application::IsRunning() {
     return running;
@@ -16,37 +14,8 @@ bool Application::IsRunning() {
 void Application::Setup() {
     running = Graphics::OpenWindow();
 
-    ///////////////////////////////////////////////////////////////////////////////
-    // Soft body with spring force
-    ///////////////////////////////////////////////////////////////////////////////
-    // Particle* a = new Particle(100, 100, 1.0);
-    // Particle* b = new Particle(300, 100, 1.0);
-    // Particle* c = new Particle(300, 300, 1.0);
-    // Particle* d = new Particle(100, 300, 1.0);
-    
-    // a->radius = 6;
-    // b->radius = 6;
-    // c->radius = 6;
-    // d->radius = 6;
-    
-    // particles.push_back(a);
-    // particles.push_back(b);
-    // particles.push_back(c);
-    // particles.push_back(d);
-
-    ///////////////////////////////////////////////////////////////////////////////
-    // Particle chain with spring force
-    ///////////////////////////////////////////////////////////////////////////////
-    anchor = Vec2(Graphics::Width() / 2.0, 30);
-
-    for (int i = 0; i < NUM_PARTICLES; i++) {
-        float mass = Utils::RandomFloat(1.0, 3.0);
-        int radius = mass * 3;
-
-        Particle* bob = new Particle(anchor.x, anchor.y + (i * restLength), mass);
-        bob->radius = radius;
-        particles.push_back(bob);
-    }
+    Body* bigBall = new Body(CircleShape(200), Graphics::Width() / 2.0, Graphics::Height() / 2.0, 0.0);
+    bodies.push_back(bigBall);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -62,58 +31,13 @@ void Application::Input() {
             case SDL_KEYDOWN:
                 if (event.key.keysym.sym == SDLK_ESCAPE)
                     running = false;
-                if (event.key.keysym.sym == SDLK_UP)
-                    pushForce.y = -50 * PIXELS_PER_METER;
-                if (event.key.keysym.sym == SDLK_RIGHT)
-                    pushForce.x = 50 * PIXELS_PER_METER;
-                if (event.key.keysym.sym == SDLK_DOWN)
-                    pushForce.y = 50 * PIXELS_PER_METER;
-                if (event.key.keysym.sym == SDLK_LEFT)
-                    pushForce.x = -50 * PIXELS_PER_METER;
-                break;
-            case SDL_KEYUP:
-                if (event.key.keysym.sym == SDLK_UP)
-                    pushForce.y = 0;
-                if (event.key.keysym.sym == SDLK_RIGHT)
-                    pushForce.x = 0;
-                if (event.key.keysym.sym == SDLK_DOWN)
-                    pushForce.y = 0;
-                if (event.key.keysym.sym == SDLK_LEFT)
-                    pushForce.x = 0;
-                break;
-            case SDL_MOUSEMOTION:
-                mouseCursor.x = event.motion.x;
-                mouseCursor.y = event.motion.y;
                 break;
             case SDL_MOUSEBUTTONDOWN:
-                if (!leftMouseButtonDown && event.button.button == SDL_BUTTON_LEFT) {
-                    leftMouseButtonDown = true;
-                    int x, y;
-                    SDL_GetMouseState(&x, &y);
-                    mouseCursor.x = x;
-                    mouseCursor.y = y;
-
-                    nearestParticle = particles[0];
-                    float minDistance = std::numeric_limits<float>::max();
-
-                    for (auto particle : particles) {
-                        float dx = x - particle->position.x;
-                        float dy = y - particle->position.y;
-                        float distance = std::sqrt(dx*dx + dy*dy);
-                        if (distance < minDistance) {
-                            minDistance = distance;
-                            nearestParticle = particle;
-                        }
-                    }
-                }
-                break;
-            case SDL_MOUSEBUTTONUP:
-                if (leftMouseButtonDown && event.button.button == SDL_BUTTON_LEFT) {
-                    leftMouseButtonDown = false;
-                    Vec2 impulseDirection = (nearestParticle->position - mouseCursor).UnitVector();
-                    float impulseMagnitude = (nearestParticle->position - mouseCursor).Magnitude() * 5.0;
-                    nearestParticle->velocity = impulseDirection * impulseMagnitude;
-                }
+                int x, y;
+                SDL_GetMouseState(&x, &y);
+                Body* smallBall = new Body(CircleShape(40), x, y, 1.0);
+                smallBall->restitution = 0.2;
+                bodies.push_back(smallBall);
                 break;
         }
     }
@@ -123,6 +47,8 @@ void Application::Input() {
 // Update function (called several times per second to update objects)
 ///////////////////////////////////////////////////////////////////////////////
 void Application::Update() {
+    Graphics::ClearScreen(0xFF0F0721);
+    
     // Wait some time until the reach the target frame time in milliseconds
     static int timePreviousFrame;
     int timeToWait = MILLISECS_PER_FRAME - (SDL_GetTicks() - timePreviousFrame);
@@ -137,84 +63,64 @@ void Application::Update() {
     // Set the time of the current frame to be used in the next one
     timePreviousFrame = SDL_GetTicks();
 
-    particles[0]->AddForce(pushForce);
+    // Apply forces to the bodies
+    for (auto body: bodies) {
+        // Apply the weight force
+        Vec2 weight = Vec2(0.0, body->mass * 9.8 * PIXELS_PER_METER);
+        body->AddForce(weight);
 
-    // Apply forces to the particles
-    for (auto particle: particles) {
-        // Apply a drag force
-        Vec2 drag = Force::GenerateDragForce(*particle, 0.003);
-        particle->AddForce(drag);
-
-        // Apply weight force
-        Vec2 weight = Vec2(0.0, particle->mass * 9.8 * PIXELS_PER_METER);
-        particle->AddForce(weight);
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////
-    // Soft body with spring force
-    ///////////////////////////////////////////////////////////////////////////////
-    // Attach particles with springs
-    // Vec2 ab = Force::GenerateSpringForce(*particles[0], *particles[1], restLength, k); // a <-> b
-    // particles[0]->AddForce(ab);
-    // particles[1]->AddForce(-ab);
-
-    // Vec2 bc = Force::GenerateSpringForce(*particles[1], *particles[2], restLength, k); // b <-> c
-    // particles[1]->AddForce(bc);
-    // particles[2]->AddForce(-bc);
-
-    // Vec2 cd = Force::GenerateSpringForce(*particles[2], *particles[3], restLength, k); // c <-> d
-    // particles[2]->AddForce(cd);
-    // particles[3]->AddForce(-cd);
-
-    // Vec2 da = Force::GenerateSpringForce(*particles[3], *particles[0], restLength, k); // d <-> a
-    // particles[3]->AddForce(da);
-    // particles[0]->AddForce(-da);
-
-    // Vec2 ac = Force::GenerateSpringForce(*particles[0], *particles[2], restLength, k); // a <-> c
-    // particles[0]->AddForce(ac);
-    // particles[2]->AddForce(-ac);
-
-    // Vec2 bd = Force::GenerateSpringForce(*particles[1], *particles[3], restLength, k); // b <-> d
-    // particles[1]->AddForce(bd);
-    // particles[3]->AddForce(-bd);
-
-    ///////////////////////////////////////////////////////////////////////////////
-    // Particle chain with spring force
-    ///////////////////////////////////////////////////////////////////////////////
-    // Attach the head to the anchor with a spring
-    Vec2 springForce = Force::GenerateSpringForce(*particles[0], anchor, restLength, k);
-    particles[0]->AddForce(springForce);
-
-    // Connect the particles with the one before in a chain of springs
-    for (int i = 1; i < NUM_PARTICLES; i++) {
-        int currParticle = i;
-        int prevParticle = i - 1;
-        Vec2 springForce = Force::GenerateSpringForce(*particles[currParticle], *particles[prevParticle], restLength, k);
-        particles[currParticle]->AddForce(springForce);
-        particles[prevParticle]->AddForce(-springForce);
+        // Apply the wind force
+        Vec2 wind = Vec2(2.0 * PIXELS_PER_METER, 0.0);
+        body->AddForce(wind);
     }
 
     // Integrate the acceleration and velocity to estimate the new position
-    for (auto particle: particles) {
-        particle->Integrate(deltaTime);
+    for (auto body: bodies) {
+        body->Update(deltaTime);
     }
 
-    // Check the boundaries of the window
-    for (auto particle: particles) {
-        // Nasty hardcoded flip in velocity if it touches the limits of the screen window
-        if (particle->position.x - particle->radius <= 0) {
-            particle->position.x = particle->radius;
-            particle->velocity.x *= -0.9;
-        } else if (particle->position.x + particle->radius >= Graphics::Width()) {
-            particle->position.x = Graphics::Width() - particle->radius;
-            particle->velocity.x *= -0.9;
+    // Check all the rigidbodies with the other rigidbodies for collision
+    for (int i = 0; i <= bodies.size() - 1; i++) {
+        for (int j = i + 1; j < bodies.size(); j++) {
+            Body* a = bodies[i];
+            Body* b = bodies[j];
+            a->isColliding = false;
+            b->isColliding = false;
+            
+            Contact contact;
+
+            if (CollisionDetection::IsColliding(a, b, contact)) {
+                // Resolve the collision using the impulse method
+                contact.ResolveCollision();
+
+                // Draw debug contact information
+                Graphics::DrawFillCircle(contact.start.x, contact.start.y, 3, 0xFFFF00FF);
+                Graphics::DrawFillCircle(contact.end.x, contact.end.y, 3, 0xFFFF00FF);
+                Graphics::DrawLine(contact.start.x, contact.start.y, contact.start.x + contact.normal.x * 15, contact.start.y + contact.normal.y * 15, 0xFFFF00FF);
+                a->isColliding = true;
+                b->isColliding = true;
+            }
         }
-        if (particle->position.y - particle->radius <= 0) {
-            particle->position.y = particle->radius;
-            particle->velocity.y *= -0.9;
-        } else if (particle->position.y + particle->radius >= Graphics::Height()) {
-            particle->position.y = Graphics::Height() - particle->radius;
-            particle->velocity.y *= -0.9;
+    }
+
+    // Check the boundaries of the window applying a hardcoded bounce flip in velocity
+    for (auto body: bodies) {
+        if (body->shape->GetType() == CIRCLE) {
+            CircleShape* circleShape = (CircleShape*) body->shape;
+            if (body->position.x - circleShape->radius <= 0) {
+                body->position.x = circleShape->radius;
+                body->velocity.x *= -0.9;
+            } else if (body->position.x + circleShape->radius >= Graphics::Width()) {
+                body->position.x = Graphics::Width() - circleShape->radius;
+                body->velocity.x *= -0.9;
+            }
+            if (body->position.y - circleShape->radius <= 0) {
+                body->position.y = circleShape->radius;
+                body->velocity.y *= -0.9;
+            } else if (body->position.y + circleShape->radius >= Graphics::Height()) {
+                body->position.y = Graphics::Height() - circleShape->radius;
+                body->velocity.y *= -0.9;
+            }
         }
     }
 }
@@ -223,42 +129,18 @@ void Application::Update() {
 // Render function (called several times per second to draw objects)
 ///////////////////////////////////////////////////////////////////////////////
 void Application::Render() {
-    Graphics::ClearScreen(0xFF0F0721);
+    // Draw all bodies
+    for (auto body: bodies) {
+        Uint32 color = body->isColliding ? 0xFF0000FF : 0xFFFFFFFF;
 
-    if (leftMouseButtonDown) {
-        Graphics::DrawLine(nearestParticle->position.x, nearestParticle->position.y, mouseCursor.x, mouseCursor.y, 0xFF0000FF);
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////
-    // Soft body with spring force
-    ///////////////////////////////////////////////////////////////////////////////
-    // Draw all springs
-    // Graphics::DrawLine(particles[0]->position.x, particles[0]->position.y, particles[1]->position.x, particles[1]->position.y, 0xFF313131);
-    // Graphics::DrawLine(particles[1]->position.x, particles[1]->position.y, particles[2]->position.x, particles[2]->position.y, 0xFF313131);
-    // Graphics::DrawLine(particles[2]->position.x, particles[2]->position.y, particles[3]->position.x, particles[3]->position.y, 0xFF313131);
-    // Graphics::DrawLine(particles[3]->position.x, particles[3]->position.y, particles[0]->position.x, particles[0]->position.y, 0xFF313131);
-    // Graphics::DrawLine(particles[0]->position.x, particles[0]->position.y, particles[2]->position.x, particles[2]->position.y, 0xFF313131);
-    // Graphics::DrawLine(particles[1]->position.x, particles[1]->position.y, particles[3]->position.x, particles[3]->position.y, 0xFF313131);
-
-    // // Draw all particles
-    // Graphics::DrawFillCircle(particles[0]->position.x, particles[0]->position.y, particles[0]->radius, 0xFFEEBB00);
-    // Graphics::DrawFillCircle(particles[1]->position.x, particles[1]->position.y, particles[1]->radius, 0xFFEEBB00);
-    // Graphics::DrawFillCircle(particles[2]->position.x, particles[2]->position.y, particles[2]->radius, 0xFFEEBB00);
-    // Graphics::DrawFillCircle(particles[3]->position.x, particles[3]->position.y, particles[3]->radius, 0xFFEEBB00);
-
-    ///////////////////////////////////////////////////////////////////////////////
-    // Particle chain with spring force
-    ///////////////////////////////////////////////////////////////////////////////
-    // Draw all the springs from one particle to the next
-    for (int i = 0; i < NUM_PARTICLES - 1; i++) {
-        int currParticle = i;
-        int nextParticle = i + 1;
-        Graphics::DrawLine(particles[currParticle]->position.x, particles[currParticle]->position.y, particles[nextParticle]->position.x, particles[nextParticle]->position.y, 0xFF313131);
-    }
-
-    // Draw all the bob particles
-    for (auto particle: particles) {
-        Graphics::DrawFillCircle(particle->position.x, particle->position.y, particle->radius, 0xFFEEBB00);
+        if (body->shape->GetType() == CIRCLE) {
+            CircleShape* circleShape = (CircleShape*) body->shape;
+            Graphics::DrawFillCircle(body->position.x, body->position.y, circleShape->radius, 0xFFFFFFFF);
+        }
+        if (body->shape->GetType() == BOX) {
+            BoxShape* boxShape = (BoxShape*) body->shape;
+            Graphics::DrawPolygon(body->position.x, body->position.y, boxShape->worldVertices, 0xFFFFFFFF);
+        }
     }
 
     Graphics::RenderFrame();
@@ -268,8 +150,8 @@ void Application::Render() {
 // Destroy function to delete objects and close the window
 ///////////////////////////////////////////////////////////////////////////////
 void Application::Destroy() {
-    for (auto particle: particles) {
-        delete particle;
+    for (auto body: bodies) {
+        delete body;
     }
     Graphics::CloseWindow();
 }
