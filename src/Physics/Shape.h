@@ -36,9 +36,9 @@ struct PolygonShape: public Shape {
     virtual ~PolygonShape();
     ShapeType GetType() const override;
     Shape* Clone() const override;
+    Vec2 EdgeAt(int index) const;
+    float FindMinSeparation(const PolygonShape* other, Vec2& axis, Vec2& point) const;
     float GetMomentOfInertia() const override;
-
-    // Function to rotate and translate the polygon vertices from "local space" to "world space."
     void UpdateVertices(float angle, const Vec2& position);
 };
 
