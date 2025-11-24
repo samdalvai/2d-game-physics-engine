@@ -18,16 +18,16 @@ void Application::Setup() {
     Body* floor = new Body(BoxShape(Graphics::Width() - 50, 50), Graphics::Width() / 2.0, Graphics::Height() - 50, 0.0);
     Body* leftWall = new Body(BoxShape(50, Graphics::Height() - 100), 50, Graphics::Height() / 2.0 - 25, 0.0);
     Body* rightWall = new Body(BoxShape(50, Graphics::Height() - 100), Graphics::Width() - 50, Graphics::Height() / 2.0 - 25, 0.0);
-    floor->restitution = 0.2;
+    floor->restitution = 0.5;
     leftWall->restitution = 0.2;
     rightWall->restitution = 0.2;
     bodies.push_back(floor);
     bodies.push_back(leftWall);
     bodies.push_back(rightWall);
 
-    // Add a static box so other boxes can collide
+    // Add a static box so other objects can collide
     Body* bigBox = new Body(BoxShape(200, 200), Graphics::Width() / 2.0, Graphics::Height() / 2.0, 0.0);
-    bigBox->restitution = 0.1;
+    bigBox->restitution = 0.7;
     bigBox->rotation = 1.4;
     bodies.push_back(bigBox);
 }
@@ -49,9 +49,10 @@ void Application::Input() {
             case SDL_MOUSEBUTTONDOWN:
                 int x, y;
                 SDL_GetMouseState(&x, &y);
-                Body* box = new Body(BoxShape(50, 50), x, y, 1.0);
-                box->restitution = 0.2;
-                bodies.push_back(box);
+                Body* ball = new Body(CircleShape(30), x, y, 1.0);
+                ball->restitution = 0.5;
+                ball->friction = 0.4;
+                bodies.push_back(ball);
                 break;
         }
     }
