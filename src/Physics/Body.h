@@ -1,6 +1,8 @@
 #ifndef BODY_H
 #define BODY_H
 
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 #include "Vec2.h"
 #include "Shape.h"
 
@@ -36,6 +38,9 @@ struct Body {
     // Pointer to the shape/geometry of this rigid body
     Shape* shape = nullptr;
 
+    // Pointer to an SDL texture
+    SDL_Texture* texture = nullptr;
+
     Body(const Shape& shape, float x, float y, float mass);
     ~Body();
 
@@ -45,6 +50,8 @@ struct Body {
     void AddTorque(float torque);
     void ClearForces();
     void ClearTorque();
+
+    void SetTexture(const char* textureFileName);
 
     void ApplyImpulse(const Vec2& j);
     void ApplyImpulse(const Vec2& j, const Vec2& r);

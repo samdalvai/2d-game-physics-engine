@@ -1,4 +1,5 @@
 #include "CollisionDetection.h"
+#include "../Graphics.h"
 #include <limits>
 
 bool CollisionDetection::IsColliding(Body* a, Body* b, Contact& contact) {
