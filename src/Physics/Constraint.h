@@ -9,8 +9,8 @@ class Constraint {
         Body* a;
         Body* b;
 
-        Vec2 aPoint; // The anchor point in A's local space
-        Vec2 bPoint; // The anchor point in B's local space
+        Vec2 aPoint; // The constraint point in A's local space
+        Vec2 bPoint; // The constraint point in B's local space
 
         virtual ~Constraint() = default;
 
@@ -37,8 +37,19 @@ class JointConstraint: public Constraint {
 };
 
 class PenetrationConstraint: public Constraint {
-    MatMN jacobian;
-    // void Solve() override;
+    private:
+        MatMN jacobian;
+        VecN cachedLambda;
+        float bias;
+        Vec2 normal;    // Normal direction of the penetration in A's local space
+        float friction; // Friction coefficient between the two penetrating bodies
+        
+    public:
+        PenetrationConstraint();
+        PenetrationConstraint(Body* a, Body* b, const Vec2& aCollisionPoint, const Vec2& bCollisionPoint, const Vec2& normal);
+        void PreSolve(const float dt) override;
+        void Solve() override;
+        void PostSolve() override;
 };
 
 #endif
