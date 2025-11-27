@@ -15,6 +15,10 @@ Shape* CircleShape::Clone() const {
     return new CircleShape(radius);
 }
 
+void CircleShape::UpdateVertices(float angle, const Vec2& position) {
+    return; // Circles don't have vertices... nothing to do here
+}
+
 ShapeType CircleShape::GetType() const {
     return CIRCLE;
 }

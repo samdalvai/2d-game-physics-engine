@@ -7,7 +7,7 @@
 
 class Application {
     private:
-        bool debug = false;
+        bool debug = true;
         bool running = false;
         World* world;
 
