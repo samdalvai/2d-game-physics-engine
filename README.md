@@ -13,7 +13,7 @@ In order for the project to run you need to install the following packages on yo
 ## Installation on linux based systems
 
 ```shell
-sudo apt install build-essential libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libsdl2-mixer-dev liblua5.3-dev
+sudo apt install build-essential libsdl2-dev libsdl2-image-dev libsdl2-gfx-dev
 ```
 
 ## Installation on macOS
