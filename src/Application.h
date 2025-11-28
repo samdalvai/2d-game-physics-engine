@@ -7,9 +7,11 @@
 
 class Application {
     private:
-        bool debug = true;
+        bool debug = false;
         bool running = false;
         World* world;
+
+        SDL_Texture* bgTexture;
 
     public:
         Application() = default;

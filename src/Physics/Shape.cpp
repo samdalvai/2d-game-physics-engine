@@ -30,11 +30,25 @@ float CircleShape::GetMomentOfInertia() const {
 }
 
 PolygonShape::PolygonShape(const std::vector<Vec2> vertices) {
-    // Initialize the vertices of the polygon shape
+    float minX = std::numeric_limits<float>::max();
+    float minY = std::numeric_limits<float>::max();
+    float maxX = std::numeric_limits<float>::lowest();
+    float maxY = std::numeric_limits<float>::lowest();
+
+    // Initialize the vertices of the polygon shape and set width and height
     for (auto vertex: vertices) {
         localVertices.push_back(vertex);
         worldVertices.push_back(vertex);
+
+        // Find min and max X and Y to calculate polygon width and height
+        minX = std::min(minX, vertex.x);
+        maxX = std::max(maxX, vertex.x);
+        minY = std::min(minY, vertex.y);
+        maxY = std::max(maxY, vertex.y);
     }
+    width = maxX - minX;
+    height = maxY - minY;
+
     std::cout << "PolygonShape constructor called!" << std::endl;
 }
 
@@ -51,9 +65,16 @@ Shape* PolygonShape::Clone() const {
 }
 
 float PolygonShape::GetMomentOfInertia() const {
-    // TODO:
-    // We need to compute the moment of inertia of the polygon correctly!!!
-    return 5000;
+    float acc0 = 0;
+    float acc1 = 0;
+    for (int i = 0; i < localVertices.size(); i++) {
+        auto a = localVertices[i];
+        auto b = localVertices[(i + 1) % localVertices.size()];
+        auto cross = abs(a.Cross(b));
+        acc0 += cross * (a.Dot(a) + b.Dot(b) + a.Dot(b));
+        acc1 += cross;
+    }
+    return acc0 / 6 / acc1;
 }
 
 Vec2 PolygonShape::EdgeAt(int index) const {
@@ -62,7 +83,7 @@ Vec2 PolygonShape::EdgeAt(int index) const {
     return worldVertices[nextVertex] - worldVertices[currVertex];
 }
 
-float PolygonShape::FindMinSeparation(const PolygonShape* other, Vec2& axis, Vec2& point) const {
+float PolygonShape::FindMinSeparation(const PolygonShape* other, int& indexReferenceEdge, Vec2& supportPoint) const {
     float separation = std::numeric_limits<float>::lowest();
     // Loop all the vertices of "this" polygon
     for (int i = 0; i < this->worldVertices.size(); i++) {
@@ -81,11 +102,53 @@ float PolygonShape::FindMinSeparation(const PolygonShape* other, Vec2& axis, Vec
         }
         if (minSep > separation) {
             separation = minSep;
-            axis = this->EdgeAt(i);
-            point = minVertex;
+            indexReferenceEdge = i;
+            supportPoint = minVertex;
         }
     }
     return separation;
+}
+
+int PolygonShape::FindIncidentEdge(const Vec2& normal) const {
+    int indexIncidentEdge;
+    float minProj = std::numeric_limits<float>::max();
+    for (int i = 0; i < this->worldVertices.size(); ++i) {
+        auto edgeNormal = this->EdgeAt(i).Normal();
+        auto proj = edgeNormal.Dot(normal);
+        if (proj < minProj) {
+            minProj = proj;
+            indexIncidentEdge = i;
+        }
+    }
+    return indexIncidentEdge;
+}
+
+int PolygonShape::ClipSegmentToLine(const std::vector<Vec2>& contactsIn, std::vector<Vec2>& contactsOut, const Vec2& c0, const Vec2& c1) const {
+    // Start with no output points
+    int numOut = 0;
+
+    // Calculate the distance of end points to the line
+    Vec2 normal = (c1 - c0).Normalize();
+    float dist0 = (contactsIn[0] - c0).Cross(normal);
+    float dist1 = (contactsIn[1] - c0).Cross(normal);
+
+    // If the points are behind the plane
+    if (dist0 <= 0)
+        contactsOut[numOut++] = contactsIn[0];
+    if (dist1 <= 0)
+        contactsOut[numOut++] = contactsIn[1];
+
+    // If the points are on different sides of the plane (one distance is negative and the other is positive)
+    if (dist0 * dist1 < 0) {
+        float totalDist = dist0 - dist1;
+
+        // Fint the intersection using linear interpolation: lerp(start,end) => start + t*(end-start)
+        float t = dist0 / (totalDist);
+        Vec2 contact = contactsIn[0] + (contactsIn[1] - contactsIn[0]) * t;
+        contactsOut[numOut] = contact;
+        numOut++;
+    }
+    return numOut;
 }
 
 void PolygonShape::UpdateVertices(float angle, const Vec2& position) {

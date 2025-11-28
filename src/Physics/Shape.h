@@ -30,6 +30,9 @@ struct CircleShape: public Shape {
 };
 
 struct PolygonShape: public Shape {
+    float width;
+    float height;
+
     std::vector<Vec2> localVertices;
     std::vector<Vec2> worldVertices;
    
@@ -39,15 +42,14 @@ struct PolygonShape: public Shape {
     ShapeType GetType() const override;
     Shape* Clone() const override;
     Vec2 EdgeAt(int index) const;
-    float FindMinSeparation(const PolygonShape* other, Vec2& axis, Vec2& point) const;
+    float FindMinSeparation(const PolygonShape* other, int& indexReferenceEdge, Vec2& supportPoint) const;
+    int FindIncidentEdge(const Vec2& normal) const;
+    int ClipSegmentToLine(const std::vector<Vec2>& contactsIn, std::vector<Vec2>& contactsOut, const Vec2& c0, const Vec2& c1) const;
     float GetMomentOfInertia() const override;
     void UpdateVertices(float angle, const Vec2& position) override;
 };
 
 struct BoxShape: public PolygonShape {
-    float width;
-    float height;
-
     BoxShape(float width, float height);
     virtual ~BoxShape();
     ShapeType GetType() const override;

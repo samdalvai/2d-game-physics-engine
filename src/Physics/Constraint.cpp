@@ -91,7 +91,7 @@ void JointConstraint::PreSolve(const float dt) {
     b->ApplyImpulseAngular(impulses[5]);                   // B angular impulse
 
     // Compute the bias term (baumgarte stabilization)
-    const float beta = 0.2f;
+    const float beta = 0.02f;
     float C = (pb - pa).Dot(pb - pa);
     C = std::max(0.0f, C - 0.01f);
     bias = (beta / dt) * C;
@@ -122,7 +122,8 @@ void JointConstraint::Solve() {
 }
 
 void JointConstraint::PostSolve() {
-    // TODO: Maybe we should clamp the values of cached lambda to reasonable limits
+    // Limit the warm starting to reasonable limits
+	cachedLambda[0] = std::clamp(cachedLambda[0], -10000.0f, 10000.0f);
 }
 
 PenetrationConstraint::PenetrationConstraint(): Constraint(), jacobian(2, 6), cachedLambda(2), bias(0.0f) {
@@ -185,17 +186,7 @@ void PenetrationConstraint::PreSolve(const float dt) {
     const float beta = 0.2f;
     float C = (pb - pa).Dot(-n);
     C = std::min(0.0f, C + 0.01f);
-
-    // Calculate relative velocity pre-impulse normal, which will be used to compute elasticity
-	Vec2 va = a->velocity + Vec2(-a->angularVelocity * ra.y, a->angularVelocity * ra.x);
-    Vec2 vb = b->velocity + Vec2(-b->angularVelocity * rb.y, b->angularVelocity * rb.x);
-	float vrelDotNormal = (va - vb).Dot(n);
-
-	// Get the restitution between the two bodies
-	float e = std::min(a->restitution, b->restitution);
-
-	// Calculate bias term considering elasticity (restitution)
-	bias = (beta / dt) * C + (e * vrelDotNormal);
+    bias = (beta / dt) * C;
 }
 
 void PenetrationConstraint::Solve() {
@@ -216,7 +207,7 @@ void PenetrationConstraint::Solve() {
     cachedLambda += lambda;
     cachedLambda[0] = (cachedLambda[0] < 0.0f) ? 0.0f : cachedLambda[0];
 
-    // Keep friction values between  -(λn*µ) and (λn*µ)
+    // Keep friction values between -(λn*µ) and (λn*µ)
 	if (friction > 0.0) {
 		const float maxFriction = cachedLambda[0] * friction;
         cachedLambda[1] = std::clamp(cachedLambda[1], -maxFriction, maxFriction);
